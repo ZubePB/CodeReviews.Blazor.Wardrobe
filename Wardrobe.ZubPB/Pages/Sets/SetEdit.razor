@@ -1,0 +1,192 @@
+﻿@page "/setsEdit/{id}";
+@using WardrobeInventory.Models;
+@inject HttpClient _client;
+@inject IJSRuntime _jsrt;
+@inject NavigationManager _nm;
+
+<h3>Edit Set</h3>
+
+<div>
+    @if (Set != null)
+    {
+        <form @onsubmit="@Save">
+            <dl class="row" style="max-width: 50%;">
+                <dt class="col-sm-2 mb-2 mt-4">Upper Cloth:</dt>
+                <dd class="col-sm-10">
+                    <select required @onchange="LoadUpper" class="mt-4 me-4" style=" width: 27.5%;">
+                        <option value="" selected>Select Upper Cloth</option>
+                        @if (UpperClothes != null)
+                        {
+                            @foreach (Cloth c in UpperClothes)
+                            {
+                                @if (c.Id == Set.UpperClothId)
+                                {
+                                    <option value="@c.Id" selected>@c.Name</option>
+                                }
+                                else
+                                {
+                                    <option value="@c.Id">@c.Name</option>
+                                }
+                            }
+                        }
+                    </select>
+                    @if (Set.UpperCloth != null)
+                    {
+                        <img src="@Set.UpperCloth.Img" class="index-img" style="position: absolute;" />
+                    }
+                </dd>
+
+                <dt class="col-sm-2 mb-2 mt-5">Lower Cloth:</dt>
+                <dd class="col-sm-10 mt-4">
+                    <select required @onchange="LoadLower" class="mt-4 me-4" style=" width: 27.5%;">
+                        <option value="" selected>Select Lower Cloth</option>
+                        @if (LowerClothes != null)
+                        {
+                            @foreach (Cloth c in LowerClothes)
+                            {
+                                @if (c.Id == Set.LowerClothId)
+                                {
+                                    <option value="@c.Id" selected>@c.Name</option>
+                                }
+                                else
+                                {
+                                    <option value="@c.Id">@c.Name</option>
+                                }
+                            }
+                        }
+                    </select>
+                    @if (Set.LowerCloth != null)
+                    {
+                        <img src="@Set.LowerCloth.Img" class="index-img" style="position: absolute;" />
+                    }
+                </dd>
+
+                <dt class="col-sm-2 mb-2 mt-5">Shoes:</dt>
+                <dd class="col-sm-10 mt-4">
+                    <select required @onchange="LoadShoes" class="mt-4 me-4" style=" width: 27.5%;">
+                        <option value="" selected>Select Shoes      </option>
+                        @if (Shoes != null)
+                        {
+                            @foreach (Cloth c in Shoes)
+                            {
+                                @if (c.Id == Set.ShoesId)
+                                {
+                                    <option value="@c.Id" selected>@c.Name</option>
+                                }
+                                else
+                                {
+                                    <option value="@c.Id">@c.Name</option>
+                                }
+                            }
+                        }
+                    </select>
+                    @if (Set.Shoes != null)
+                    {
+                        <img src="@Set.Shoes.Img" class="index-img" style="position: absolute;" />
+                    }
+                </dd>
+
+                <dt class="col-sm-2 mt-4"></dt>
+                <dd class="col-sm-10 mt-4">
+                    <button type="submit" value="Save" class="btn btn-primary me-2">Save</button>
+                    <button type="button" value="Cancel" class="btn btn-warning text-light" @onclick="@Cancel">Cancel</button>
+                </dd>
+            </dl>
+        </form>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string? Id { get; set; }
+    private Set? Set = new();
+    private List<Cloth>? UpperClothes = [];
+    private List<Cloth>? LowerClothes = [];
+    private List<Cloth>? Shoes = [];
+    private string? UpperImg { get; set; }
+    private string? LowerImg { get; set; }
+    private string? ShoesImg { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        HttpResponseMessage? rm = await _client.GetAsync("api/cloth/GetByBodyPart/1");
+        rm.EnsureSuccessStatusCode();
+        UpperClothes = await rm.Content.ReadFromJsonAsync<List<Cloth>>();
+
+        rm = await _client.GetAsync("api/cloth/GetByBodyPart/2");
+        rm.EnsureSuccessStatusCode();
+        LowerClothes = await rm.Content.ReadFromJsonAsync<List<Cloth>>();
+
+        rm = await _client.GetAsync("api/cloth/GetByBodyPart/3");
+        rm.EnsureSuccessStatusCode();
+        Shoes = await rm.Content.ReadFromJsonAsync<List<Cloth>>();
+
+        rm = await _client.GetAsync($"api/set/get/{Id}");
+        rm.EnsureSuccessStatusCode();
+        Set = await rm.Content.ReadFromJsonAsync<Set>();
+
+        if (Set == null) _nm.NavigateTo("/sets");
+    }
+
+    protected async Task LoadUpper(ChangeEventArgs e)
+    {
+        int id;
+        if (int.TryParse($"{e.Value}", out id))
+        {
+            Set!.UpperCloth = UpperClothes!.FirstOrDefault(x => x.Id == id);
+            if (Set.UpperCloth != null)
+            {
+                Set.UpperClothId = id;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        else { Set.UpperCloth = new(); }
+    }
+
+    protected async Task LoadLower(ChangeEventArgs e)
+    {
+        int id;
+        if (int.TryParse($"{e.Value}", out id))
+        {
+            Set!.LowerCloth = LowerClothes!.FirstOrDefault(x => x.Id == id);
+            if (Set.LowerCloth != null)
+            {
+                Set.LowerClothId = id;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        else { Set.LowerCloth = new(); }
+    }
+    protected async Task LoadShoes(ChangeEventArgs e)
+    {
+        int id;
+        if (int.TryParse($"{e.Value}", out id))
+        {
+            Set!.Shoes = Shoes!.FirstOrDefault(x => x.Id == id);
+            if (Set.Shoes != null)
+            {
+                Set.ShoesId = id;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        else { Set.Shoes = new(); }
+    }
+
+    protected async Task Save()
+    {
+        if (Set!.UpperCloth != null && Set.LowerCloth != null && Set.Shoes != null)
+        {
+            HttpResponseMessage? rm = await _client.PostAsJsonAsync($"api/set/update/{Id}", Set);
+            bool updated = await rm.Content.ReadFromJsonAsync<bool>();
+            if (updated)
+            {
+                await _jsrt.InvokeVoidAsync("alert", "Set Added Sucessfully.");
+                _nm.NavigateTo("sets");
+            }
+            else await _jsrt.InvokeVoidAsync("alert", "Impossible to add new set. Are you sure all field are filled?");
+        }
+        else await _jsrt.InvokeVoidAsync("alert", "Impossible to add new set. Are you sure all field are filled?");
+    }
+
+    protected void Cancel() => _nm.NavigateTo("sets");
+}

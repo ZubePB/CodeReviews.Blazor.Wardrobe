@@ -1,0 +1,103 @@
+﻿@page "/sets";
+@using WardrobeInventory.Models;
+@inject HttpClient _client;
+@inject IJSRuntime _jsrt;
+
+<h1>Sets</h1>
+
+<div>
+    <div id="add-div" class="mb-3">
+        <a class="btn btn-info text-light" href="/setsAdd">Add New Set</a>
+    </div>
+    <div>
+        @if(Sets != null)
+        {
+            <table class="table table-bordered table-dark table-striped-columns">
+                <thead class="table-secondary">
+                    <tr>
+                        <th width="3%">
+                            <span @onclick="@OrderById" style="color: @IdColor; cursor: pointer;">#</span>
+                        </th>
+                        <th class="bg-light">
+                            <span @onclick="@OrderByName" style="color: @NameColor; cursor: pointer;">Name</span>
+                            @if (Order == "name")
+                            {
+                                <span>°</span>
+                            }
+                        </th>
+                        <th>Upper Cloth</th>
+                        <th>Lower Cloth</th>
+                        <th>Shoes</th>
+                        <th width="17%"></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach(Set s in Sets)
+                    {
+                        <tr>
+                            <td class="bg-dark text-light">@s.Id</td>
+                            <td class="bg-dark text-light">@s.Name</td>
+                            <td class="bg-dark text-light">
+                                <img src="@s.UpperCloth!.Img" class="index-img" />
+                            </td>
+                            <td class="bg-dark text-light">
+                                <img src="@s.LowerCloth!.Img" class="index-img" />
+                            </td>
+                            <td class="bg-dark text-light">
+                                <img src="@s.Shoes!.Img" class="index-img" />
+                            </td>
+                            <td>
+                                <a class="btn btn-info me-2 mt-2" href="/setsDetails/@s.Id">Details</a>
+                                <a class="btn btn-success me-2 mt-2" href="/setsEdit/@s.Id">Edit</a>
+                                <a class="btn btn-danger mt-2" href="/setsDelete/@s.Id">Delete</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@code{
+    private List<Set>? Sets = [];
+    private string? Order = "id";
+    private string? NameColor = "black";
+    private string IdColor = "slategrey";
+
+    protected override async Task OnInitializedAsync()
+    {
+        HttpResponseMessage? rm = await _client.GetAsync("api/set");
+        rm.EnsureSuccessStatusCode();
+        Sets = await rm.Content.ReadFromJsonAsync<List<Set>>();
+        if(Sets == null)
+        {
+            await _jsrt.InvokeVoidAsync("alert", "Cannot find an sets");
+        }
+    }
+
+    protected void OrderByName()
+    {
+        if (Order == "name") Sets!.Reverse();
+        else
+        {
+            Sets = Sets!.OrderBy(x => x.Name).ToList();
+            Order = "name";
+            NameColor = "slategrey";
+            IdColor = "black";
+        }
+    }
+
+    protected void OrderById()
+    {
+        if(Order == "id") Sets!.Reverse();
+        else
+        {
+            Sets = Sets!.OrderBy(x => x.Id).ToList();
+            Order = "id";
+            NameColor = "black";
+            IdColor = "slategrey";
+        }
+    }
+}

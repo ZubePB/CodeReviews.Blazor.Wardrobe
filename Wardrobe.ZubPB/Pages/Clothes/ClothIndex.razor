@@ -1,0 +1,193 @@
+﻿@page "/clothes";
+@using BlazorBootstrap
+@using WardrobeInventory.Models;
+@inject HttpClient _client;
+
+<h1>Cloth List</h1>
+
+<div>
+    <div id="add-div d-flex space-between" class="mb-3">
+        <a class="btn btn-info text-light" href="/clothAdd">Add New Cloth</a>
+
+        <div class="mt-3 mb-3">
+            <form @oninput="@SetCategory">
+                <select @bind="@CatId" @oninput="@SetCategory">
+                    <option value="0" selected>Categories</option>
+                    @foreach (Category c in Categories!)
+                    {
+                        <option value="@c.Id">@c.Name</option>
+                    }
+                </select>
+            </form>
+        </div>
+    </div>
+
+
+
+    @if (DisplayedClothes != null)
+    {
+        <table class="table table-bordered table-dark table-striped-columns table-hover">
+            <thead class="table-secondary">
+                <tr>
+                    <th width="3%">
+                        <span @onclick="@OrderById" style="color: @IdColor; cursor: pointer;">#</span>
+                    </th>
+                    <th class="bg-light">
+                        <span @onclick="@OrderByName" style="color: @NameColor; cursor: pointer;">Name</span>
+                        @if (Order == "name")
+                        {
+                            <span>°</span>
+                        }
+                    </th>
+                    <th>
+                        <span @onclick="@OrderByCategory" style="color: @CategoryColor; cursor: pointer;">Category</span>
+                        @if (Order == "category")
+                        {
+                            <span>°</span>
+                        }
+                    </th>
+                    <th width="80px">Image</th>
+                    <th width="20%"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (Cloth c in DisplayedClothes)
+                {
+                    <tr>
+                        <td class="bg-dark text-light">@c.Id</td>
+                        <td class="bg-dark text-light">@c.Name</td>
+                        <td class="bg-dark text-light">@c.Category!.Name</td>
+                        <td class="bg-dark text-light">
+                            <img src="@c.Img" class="index-img" />
+                        </td>
+                        <td width="12%" class="text-center">
+                            <a class="btn btn-info me-2 mt-2" href="/clothesDetails/@c.Id">Details</a>
+                            <a class="btn btn-success me-2 mt-2" href="/clothesEdit/@c.Id">Edit</a>
+                            <a class="btn btn-danger mt-2" href="/clothesDelete/@c.Id">Delete</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (AllClothes!.Count > 20)
+        {
+            <div class="blaz-bs-pages">
+                <Pagination ActivePageNumber="@CurrentPage"
+                            TotalPages="@MaxPage"
+                            DisplayPages="5"
+                            FirstLinkIcon="IconName.ChevronDoubleLeft"
+                            PreviousLinkIcon="IconName.ChevronLeft"
+                            NextLinkIcon="IconName.ChevronRight"
+                            LastLinkIcon="IconName.ChevronDoubleRight"
+                            PageChanged="SetPage"
+                            Alignment="Alignment.Center" />
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<Cloth>? AllClothes = [];
+    private List<Cloth>? DisplayedClothes = [];
+    private List<Category>? Categories = [];
+    private int CatId { get; set; }
+    private string? Order = "id";
+    private string? IdColor = "slategrey";
+    private string? NameColor = "black";
+    private string? CategoryColor = "black";
+    private int MaxPage { get; set; }
+    private int CurrentPage { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        HttpResponseMessage? rm = await _client.GetAsync("/api/cloth");
+        AllClothes = await rm.Content.ReadFromJsonAsync<List<Cloth>>();
+
+        if (AllClothes != null)
+        {
+            rm = await _client.GetAsync("/api/category");
+            Categories = await rm.Content.ReadFromJsonAsync<List<Category>>();
+
+            CurrentPage = 1;
+            DisplayedClothes = AllClothes.Take(10).ToList();
+            MaxPage = (int)Math.Ceiling((decimal)(AllClothes.Count / 10));
+            await SetPage(1);
+        }
+    }
+
+    protected async Task OrderByName()
+    {
+        if (Order == "name")
+        {
+            AllClothes!.Reverse();
+            await SetPage(CurrentPage);
+        }
+        else
+        {
+            AllClothes = AllClothes!.OrderBy(x => x.Name).ToList();
+            Order = "name";
+            ResetColors();
+            NameColor = "slategrey";
+            await SetPage(CurrentPage);
+        }
+    }
+
+    protected async Task OrderByCategory()
+    {
+        if (Order == "category")
+        {
+            AllClothes!.Reverse();
+            await SetPage(CurrentPage);
+        }
+        else
+        {
+            AllClothes = AllClothes!.OrderBy(x => x.Category!.Name).ToList();
+            Order = "category";
+            ResetColors();
+            CategoryColor = "slategrey";
+            await SetPage(CurrentPage);
+        }
+    }
+
+    protected async Task OrderById()
+    {
+        if (Order == "id")
+        {
+            AllClothes!.Reverse();
+            await SetPage(CurrentPage);
+        }
+        else
+        {
+            AllClothes = AllClothes!.OrderBy(x => x.Id).ToList();
+            Order = "id";
+            ResetColors();
+            IdColor = "slategrey";
+            await SetPage(CurrentPage);
+        }
+    }
+
+    private async Task SetPage(int page)
+    {
+        await Task.Run(() => { CurrentPage = page; });
+        if (CatId == 0)
+        {
+            DisplayedClothes = AllClothes!.Skip((CurrentPage - 1) * 10).Take(10).ToList();
+            MaxPage = (int)Math.Ceiling((decimal)(AllClothes!.Count / 10));
+        }
+        else
+        {
+            DisplayedClothes = AllClothes!.Where(x => x.CategoryId == CatId).Skip((CurrentPage - 1) * 10).Take(10).ToList();
+            MaxPage = (int)Math.Ceiling((decimal)( AllClothes!.Where(x => x.CategoryId == CatId).Count() / 10));
+        }
+    }
+
+    private async Task SetCategory() => await SetPage(1);
+
+
+    private void ResetColors()
+    {
+        IdColor = "black";
+        NameColor = "black";
+        CategoryColor = "black";
+    }
+}

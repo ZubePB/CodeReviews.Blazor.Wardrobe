@@ -1,0 +1,61 @@
+﻿@page "/clothesDelete/{id}";
+@using WardrobeInventory.Models;
+@inject HttpClient _client;
+@inject IJSRuntime _jsrt;
+@inject NavigationManager _nm;
+
+<h3>Delete Cloth</h3>
+
+<div>
+    @if (Cloth != null && Cloth.Id != 0)
+    {
+        <dl class="row" style="max-width: 50%">
+            <dt class="col-sm-2 mb-2">#:</dt>
+        <dd class="col-sm-10 mb-2">@Cloth!.Id</dd>
+        <dt class="col-sm-2 mb-2">Name:</dt>
+        <dd class="col-sm-10 mb-2">@Cloth.Name</dd>
+        <dt class="col-sm-2 mb-2">Category:</dt>
+        <dd class="col-sm-10 mb-2">@Cloth.Category!.Name</dd>
+        <dt class="col-sm-2 mb-3">Image:</dt>
+        <dd class="col-sm-10 mb-4">
+            <img src="@Cloth.Img" style="max-width: 128px; max-height:128px;" />
+        </dd>
+        <dt class="col-sm-2"></dt>
+        <dd class="col-sm-10">
+            <button type="button" class="btn btn-danger me-2" @onclick="@Delete">Delete</button>
+            <button type="button" class="btn btn-warning text-light" @onclick="@Cancel">Cancel</button>
+        </dd>
+    </dl>
+    }
+</div>
+
+@code{
+    [Parameter]
+    public string? Id { get; set; }
+
+    private Cloth? Cloth = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        HttpResponseMessage? rm = await _client.GetAsync($"api/cloth/get/{Id}");
+        rm.EnsureSuccessStatusCode();
+        if (rm.StatusCode == System.Net.HttpStatusCode.OK) Cloth = await rm.Content.ReadFromJsonAsync<Cloth>();
+
+        if (Cloth == null || Cloth.Id == 0) _nm.NavigateTo("/clothes");
+
+    }
+
+    private async Task Delete()
+    {
+        HttpResponseMessage? rm = await _client.DeleteAsync($"api/cloth/delete/{Id}");
+        rm.EnsureSuccessStatusCode();
+        if (await rm.Content.ReadFromJsonAsync<bool>())
+        {
+            await _jsrt.InvokeVoidAsync("alert", "Cloth was deleted successfully");
+            _nm.NavigateTo("/clothes");
+        }
+        else await _jsrt.InvokeVoidAsync("alert", "Impossible to delete cloth.");
+    }
+
+    private void Cancel() => _nm.NavigateTo("/clothes");
+}
