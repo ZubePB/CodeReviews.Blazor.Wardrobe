@@ -6,9 +6,9 @@ namespace WardrobeInventory.Controllers;
 
 public class SetController : Controller
 {
-    private readonly IService<Set> _service;
+    private readonly SetService _service;
 
-    public SetController(IService<Set> service) => _service = service;
+    public SetController(SetService service) => _service = service;
 
     public async Task<List<Set>?> GetAll() => await _service.GetAllAsync();
 

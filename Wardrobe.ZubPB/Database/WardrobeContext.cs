@@ -18,13 +18,7 @@ public class WardrobeContext : DbContext
     {
         // Comment/Uncomment to reset data in the database
         //try { Database.EnsureDeleted(); } catch { }
-        Database.EnsureCreated();
-    }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        optionsBuilder.UseSqlite($"Data Source={Directory.GetCurrentDirectory()}/Database/Wardrobe.db");
-        base.OnConfiguring(optionsBuilder);
+        //Database.EnsureCreated();
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

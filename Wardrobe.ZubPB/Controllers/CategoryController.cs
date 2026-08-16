@@ -8,7 +8,7 @@ public class CategoryController : Controller
 {
     private readonly CategoryService _service;
 
-    public CategoryController(IService<Category> service) => _service = (CategoryService)service;
+    public CategoryController(CategoryService service) => _service = service;
 
     public async Task<List<Category>?> GetAll() => await _service.GetAllAsync();
 

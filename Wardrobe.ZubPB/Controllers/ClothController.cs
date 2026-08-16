@@ -1,8 +1,4 @@
-﻿using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
-using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.JavaScript;
+﻿using Microsoft.AspNetCore.Mvc;
 using WardrobeInventory.Models;
 using WardrobeInventory.Services;
 
@@ -12,7 +8,7 @@ public class ClothController : Controller
 {
     private readonly ClothService _service;
 
-    public ClothController(IService<Cloth> service) => _service = (ClothService)service;
+    public ClothController(ClothService service) => _service = service;
 
     public async Task<List<Cloth>?> GetAll() => await _service.GetAllAsync();
 
@@ -41,7 +37,7 @@ public class ClothController : Controller
     public async Task<List<Cloth>?> GetByBodyPart(int id)
     {
         List<Cloth>? clothes = await GetAll();
-        if(clothes != null) clothes = clothes.Where(x => x.Category!.BodyPartId == id).ToList();
+        if (clothes != null) clothes = clothes.Where(x => x.Category!.BodyPartId == id).ToList();
         return clothes;
     }
 

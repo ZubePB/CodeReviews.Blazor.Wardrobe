@@ -1,27 +1,37 @@
-﻿using WardrobeInventory.Models;
-using WardrobeInventory.Repositories;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using WardrobeInventory.Database;
+using WardrobeInventory.Models;
 
 namespace WardrobeInventory.Services;
 
-public class CategoryService : IService<Category>
+public class CategoryService
 {
-    private readonly CategoryRepository _repository;
+    private readonly WardrobeContext _context;
 
-    public CategoryService(IRepository<Category> repository) => _repository = (CategoryRepository)repository;
+    public CategoryService(WardrobeContext context) => _context = context;
 
-    public async Task<List<Category>?> GetAllAsync() => await _repository.GetAllAsync();
+    public async Task<List<Category>?> GetAllAsync() => await _context.Categories.IgnoreAutoIncludes().ToListAsync();
 
-    public async Task<Category?> GetAsync(int id) => await _repository.GetAsync(id);
+    public async Task<Category?> GetAsync(int id) => await _context.Categories.FirstOrDefaultAsync(x => x.Id == id);
 
-    public async Task<Category> CreateAsync(Category category) => await _repository.CreateAsync(category);
+    public async Task<Category> CreateAsync(Category category)
+    {
+        EntityEntry<Category> entry = await _context.Categories.AddAsync(category);
+        await _context.SaveChangesAsync();
+        return entry.Entity;
+    }
 
     public async Task<bool> UpdateAsync(int id, Category inputCategory)
     {
-        Category? category = await _repository.GetAsync(id);
+        Category? category = await GetAsync(id);
         if (category != null)
         {
             category.Name = inputCategory.Name;
-            await _repository.UpdateAsync(category);
+
+            _context.Categories.Update(category);
+            await _context.SaveChangesAsync();
+
             return true;
         }
         return false;
@@ -29,9 +39,21 @@ public class CategoryService : IService<Category>
 
     public async Task<bool> DeleteAsync(int id)
     {
-        await _repository.DeleteAsync(id);
-        return true;
+        Category? category = await _context.Categories.FirstOrDefaultAsync(x => x.Id == id);
+        if (category != null)
+        {
+            _context.Categories.Remove(category);
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+        return false;
     }
 
-    public async Task<List<Category>?> GetWithClothesAsync() => await _repository.GetWithClothesAsync();
+    public async Task<List<Category>?> GetWithClothesAsync()
+    {
+        List<Category> cats = await _context.Categories.ToListAsync();
+        foreach (Category cat in cats) cat.Clothes = await _context.Clothes.Where(x => x.CategoryId == cat.Id).IgnoreQueryFilters().ToListAsync();
+        return cats;
+    }
 }

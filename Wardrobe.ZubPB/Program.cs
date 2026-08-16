@@ -1,6 +1,5 @@
+using Microsoft.EntityFrameworkCore;
 using WardrobeInventory.Database;
-using WardrobeInventory.Models;
-using WardrobeInventory.Repositories;
 using WardrobeInventory.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,17 +10,12 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-builder.Services.AddDbContext<WardrobeContext>();
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("http://localhost:5076") });
+builder.Services.AddDbContext<WardrobeContext>(x => x.UseSqlite(builder.Configuration.GetConnectionString("WardrobeContext")));
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.Configuration.GetConnectionString("HttpClient")!) });
 
-builder.Services.AddTransient<IRepository<Cloth>, ClothRepository>();
-builder.Services.AddTransient<IService<Cloth>, ClothService>();
-
-builder.Services.AddTransient<IRepository<Category>, CategoryRepository>();
-builder.Services.AddTransient<IService<Category>, CategoryService>();
-
-builder.Services.AddTransient<IRepository<Set>, SetRepository>();
-builder.Services.AddTransient<IService<Set>, SetService>();
+builder.Services.AddTransient<ClothService>();
+builder.Services.AddTransient<CategoryService>();
+builder.Services.AddTransient<SetService>();
 
 var app = builder.Build();
 

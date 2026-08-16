@@ -1,29 +1,38 @@
-﻿using WardrobeInventory.Models;
-using WardrobeInventory.Repositories;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using WardrobeInventory.Database;
+using WardrobeInventory.Models;
 
 namespace WardrobeInventory.Services;
 
-public class ClothService : IService<Cloth>
+public class ClothService
 {
-    private readonly ClothRepository _repository;
+    private readonly WardrobeContext _context;
 
-    public ClothService(IRepository<Cloth> repository) => _repository = (ClothRepository)repository;
+    public ClothService(WardrobeContext context) => _context = context;
 
-    public async Task<List<Cloth>?> GetAllAsync() => await _repository.GetAllAsync();
+    public async Task<List<Cloth>?> GetAllAsync() => await _context.Clothes.Include(x => x.Category).IgnoreAutoIncludes().ToListAsync();
 
-    public async Task<Cloth?> GetAsync(int id) => await _repository.GetAsync(id);
+    public async Task<Cloth?> GetAsync(int id) => await _context.Clothes.Include(x => x.Category).IgnoreAutoIncludes().FirstOrDefaultAsync(x => x.Id == id);
 
-    public async Task<Cloth> CreateAsync(Cloth cloth) => await _repository.CreateAsync(cloth);
+    public async Task<Cloth> CreateAsync(Cloth cloth)
+    {
+        EntityEntry<Cloth> entry = await _context.Clothes.AddAsync(cloth);
+        await _context.SaveChangesAsync();
+        return entry.Entity;
+    }
 
     public async Task<bool> UpdateAsync(int id, Cloth inputCloth)
     {
-        Cloth? cloth = await _repository.GetAsync(id);
-        if(cloth != null)
+        Cloth? cloth = await GetAsync(id);
+        if (cloth != null)
         {
             cloth.Name = inputCloth.Name;
             cloth.CategoryId = inputCloth.CategoryId;
             cloth.Img = inputCloth.Img;
-            await _repository.UpdateAsync(cloth);
+            _context.Clothes.Update(cloth);
+            await _context.SaveChangesAsync();
+
             return true;
         }
         return false;
@@ -31,9 +40,32 @@ public class ClothService : IService<Cloth>
 
     public async Task<bool> DeleteAsync(int id)
     {
-        await _repository.DeleteAsync(id);
-        return true;
+        Cloth? cloth = await _context.Clothes.FirstOrDefaultAsync(x => x.Id == id);
+        if (cloth != null)
+        {
+            _context.Clothes.Remove(cloth);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        return false;
     }
 
-    public async Task<Cloth?> GetWithSets(int id) => await _repository.GetWithSets(id);
+    public async Task<bool> CategoryExists(int id) => await _context.Categories.AnyAsync(x => x.Id == id);
+
+    public async Task<Cloth?> GetWithSets(int id)
+    {
+        Cloth? cloth = await GetAsync(id);
+        if (cloth != null)
+        {
+            cloth.Sets = await _context.Sets.Where(x => x.UpperClothId == cloth.Id || x.LowerClothId == cloth.Id || x.ShoesId == cloth.Id).ToListAsync();
+            foreach (Set set in cloth.Sets)
+            {
+                set.UpperCloth = null;
+                set.LowerCloth = null;
+                set.Shoes = null;
+            }
+            ;
+        }
+        return cloth;
+    }
 }
